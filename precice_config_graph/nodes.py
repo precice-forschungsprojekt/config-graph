@@ -78,18 +78,13 @@ class ParticipantNode:
 
 
 class MeshNode:
-    def __init__(self, name: str, use_data: list[DataNode] = None, write_data: list[DataNode] = None):
+    def __init__(self, name: str, use_data: list[DataNode] = None):
         self.name = name
 
         if use_data is None:
             self.use_data = []
         else:
             self.use_data = use_data
-
-        if write_data is None:
-            self.write_data = []
-        else:
-            self.write_data = write_data
 
 
 class ReceiveMeshNode:
@@ -107,6 +102,23 @@ class CouplingNode:
     ):
         self.first_participant = first_participant
         self.second_participant = second_participant
+
+        if exchanges is None:
+            self.exchanges = []
+        else:
+            self.exchanges = exchanges
+
+
+class MultiCouplingNode:
+    def __init__(self, control_participant: ParticipantNode, participants: list[ParticipantNode] = None,
+                 exchanges: list[ExchangeNode] = None):
+        # TODO control participant as first entry of participants[] ?
+        self.control_participant = control_participant
+
+        if participants is None:
+            self.participants = []
+        else:
+            self.participants = participants
 
         if exchanges is None:
             self.exchanges = []
@@ -144,7 +156,8 @@ class ReadDataNode:
 
 
 class ExchangeNode:
-    def __init__(self, coupling_scheme: CouplingNode|MultiCouplingNode, data: DataNode, mesh: MeshNode, from_participant: ParticipantNode,
+    def __init__(self, coupling_scheme: CouplingNode | MultiCouplingNode, data: DataNode, mesh: MeshNode,
+                 from_participant: ParticipantNode,
                  to_participant: ParticipantNode):
         self.coupling_scheme = coupling_scheme
         self.data = data
@@ -153,20 +166,8 @@ class ExchangeNode:
         self.to_participant = to_participant
 
 
-class MultiCouplingNode:
-    def __init__(self, control_participant: ParticipantNode, participants: list[ParticipantNode],
-                 exchanges: list[ExchangeNode] = None):
-        # TODO control participant as first entry of participants[] ?
-        self.control_participant = control_participant
-        self.participants = participants
-        if exchanges is None:
-            self.exchanges = []
-        else:
-            self.exchanges = exchanges
-
-
 # TODO is a node for logging (https://precice.org/configuration-logging.html) needed? For me it does not make sense,
-#  as it is not used/connectd to anything else
+#  as it is not used/connected to anything else
 
 
 # TODO is export a “valid” node? Maybe good for info, but as stated in precice: "great feature for debugging", so not

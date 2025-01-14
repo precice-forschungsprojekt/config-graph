@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<precice-configuration>
+    <log>
+        <sink
+                filter="%Severity% > debug"
+                format="---[precice] %ColorizedSeverity% %Message%"
+                enabled="true" />
+    </log>
+
+    <data:scalar name="Color" />
+
+    <mesh name="Generator-Mesh" dimensions="2">
+        <use-data name="Color" />
+    </mesh>
+
+    <mesh name="Propagator-Mesh" dimensions="2">
+        <use-data name="Color" />
+    </mesh>
+
+    <participant name="Generator">
+        <provide-mesh name="Generator-Mesh" />
+        <write-data name="Color" mesh="Generator-Mesh" />
+    </participant>
+
+    <participant name="Propagator">
+        <receive-mesh name="Generator-Mesh" from="Generator" />
+        <provide-mesh name="Propagator-Mesh" />
+        <mapping:nearest-neighbor
+                direction="read"
+                from="Generator-Mesh"
+                to="Propagator-Mesh"
+                constraint="consistent" />
+        <read-data name="Color" mesh="Propagator-Mesh" />
+
+        <action:multiply-by-area mesh="Propagator-Mesh" timing="write-mapping-post">
+            <target-data name="Color"/>
+        </action:multiply-by-area>
+    </participant>
+
+    <m2n:sockets acceptor="Generator" connector="Propagator" exchange-directory=".." />
+
+    <coupling-scheme:serial-explicit>
+        <participants first="Generator" second="Propagator" />
+        <time-window-size value="0.01" />
+        <max-time value="0.3" />
+        <exchange data="Color" mesh="Generator-Mesh" from="Generator" to="Propagator" />
+    </coupling-scheme:serial-explicit>
+</precice-configuration>
