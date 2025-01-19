@@ -324,7 +324,7 @@ def print_graph(graph: nx.DiGraph):
             case n.ExchangeNode():
                 node_labels[node] = "Exchange"
             case n.MappingNode():
-                node_labels[node] = f"Mapping ({node.direction})"
+                node_labels[node] = f"Mapping ({node.direction.name})"
             case n.WriteDataNode():
                 node_labels[node] = f"Write {node.data.name}"
             case n.ReadDataNode():
@@ -344,4 +344,23 @@ def print_graph(graph: nx.DiGraph):
         graph, pos,
         edge_labels={tuple(edge): label_for_edge(d) for *edge, d in graph.edges(data=True)},
     )
+
+    # Create a plot for the debugging view of the graph
+    handles = []
+    unique_types = []
+    for node in graph.nodes():
+        name = node.__class__.__name__
+        # Only display each node type once
+        if name not in unique_types:
+            unique_types.append(node.__class__.__name__)
+            # Remove the 'Node' suffix
+            label = name[:-4]
+            size = 15
+            handles.append(
+                plt.Line2D([], [], marker='o', color='w', markerfacecolor=color_for_node(node),
+                           markersize=size, label=label)
+            )
+
+    plt.legend(handles=handles, loc='upper left', title='Nodes types:')
+
     plt.show()
