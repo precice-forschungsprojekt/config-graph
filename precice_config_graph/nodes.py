@@ -174,12 +174,6 @@ class MultiCouplingNode:
             self.exchanges = exchanges
 
 
-# TODO is a node for logging (https://precice.org/configuration-logging.html) needed? For me it does not make sense,
-#  as it is not used/connectd to anything else
-
-
-# TODO is export a “valid” node? Maybe good for info, but as stated in precice: "great feature for debugging", so not
-#  really a good way to use coupling data
 class ExportNode:
     def __init__(self, participant: ParticipantNode):
         self.participant = participant

@@ -14,7 +14,7 @@ from . import nodes as n
 from .edges import Edge
 
 
-def get_graph(root: etree.Element) -> nx.DiGraph:
+def get_graph(root: etree.Element) -> nx.Graph:
     assert root.tag == "precice-configuration"
 
     # Taken from config-visualizer. Modified to also return postfix.
@@ -177,7 +177,8 @@ def get_graph(root: etree.Element) -> nx.DiGraph:
     # BUILD GRAPH
     # from found nodes and inferred edges
 
-    g = nx.DiGraph()
+    # Use an undirected graph
+    g = nx.Graph()
 
     for data in data_nodes.values(): g.add_node(data)
 
@@ -244,7 +245,7 @@ def get_graph(root: etree.Element) -> nx.DiGraph:
     return g
 
 
-def print_graph(graph: nx.DiGraph):
+def print_graph(graph: nx.Graph):
     def color_for_node(node):
         match node:
             case n.DataNode():
@@ -324,7 +325,7 @@ def print_graph(graph: nx.DiGraph):
             case n.ExchangeNode():
                 node_labels[node] = "Exchange"
             case n.MappingNode():
-                node_labels[node] = f"Mapping ({node.direction})"
+                node_labels[node] = f"Mapping ({node.direction.name})"
             case n.WriteDataNode():
                 node_labels[node] = f"Write {node.data.name}"
             case n.ReadDataNode():

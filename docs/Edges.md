@@ -13,7 +13,8 @@ The edges mainly add redundancies to allow future checks to be less complex.
 Edges are modeled as an enum. The “type” of the edge is important for the checker;
 for the graph the type defines a label for the edge.
 
-Here you will find a list with brief explanations of each edge:
+Here you will find a list with brief explanations of each edge. 
+As the graph is undirected, the `to` and `from` entries mainly correspond to the reading direction of the edge's label.
 
 - `type`: The type of the edge.
 - `from`: The type of the origin-node.
@@ -41,7 +42,7 @@ This edge connects a receive-mesh node and the mesh that it actually refers to.
 
 ## Receive-mesh → participant
 
-This edge connects a receive-mesh node and a participant, who receives the mesh.
+This edge connects a receive-mesh node and a participant who receives the mesh.
 
 - `type`: RECEIVE_MESH__CHILD_OF
 - `from`: ReceiveMesh

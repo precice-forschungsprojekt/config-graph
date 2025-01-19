@@ -75,7 +75,7 @@ dependencies = [
 # …
 ```
 
-Then, run `pip install .` in your project. To built a graph, use the following code snippet:
+Then, run `pip install .` in your project. To build a graph, use the following code snippet:
 
 ```python
 from precice_config_graph import graph, xml_processing
