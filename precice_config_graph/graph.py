@@ -211,7 +211,7 @@ def get_graph(root: etree.Element) -> nx.Graph:
                         assert control_participant is None  # there must not be multiple control participants
                         control_participant = participant
 
-                assert control_participant is not None
+                assert control_participant is not None, "There must be a control participant"
 
                 coupling_scheme = n.MultiCouplingSchemeNode(control_participant, participants)
 
@@ -250,8 +250,11 @@ def get_graph(root: etree.Element) -> nx.Graph:
             case "mpi":
                 # TODO: Implement MPI. Maybe raise a warning instead of an error.
                 raise NotImplementedError("MPI M2N type is not implemented")
+            case "mpi-multiple-ports":
+                # TODO: Implement multiple ports MPI.
+                raise NotImplementedError("Multiple ports MPI M2N type is not implemented")
             case _:
-                raise ValueError("Unknown m2n type")
+                raise ValueError("Unknown M2N type")
 
     # BUILD GRAPH
     # from found nodes and inferred edges
@@ -458,7 +461,7 @@ def print_graph(graph: nx.Graph):
             case _:
                 node_labels[node] = ""
 
-    pos = nx.spring_layout(graph)
+    pos = nx.spring_layout(graph, seed=1) # set the seed so that generated graph always has same layout
     nx.draw(
         graph, pos,
         with_labels=True, arrows=True,

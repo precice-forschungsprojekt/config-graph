@@ -5,6 +5,7 @@ let
     python312Packages.elementpath
     python312Packages.networkx
     python312Packages.matplotlib
+    python312Packages.pytest
   ]);
 in pkgs.mkShell {
   packages = [

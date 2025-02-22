@@ -14,6 +14,7 @@ A Library that builds a graph from a preCICE configuration file for validation a
 - Pip
 - Git for cloning the repository
 - PyQt6
+- Pytest for testing (`pip install -U pytest`)
 
 ## Installation
 
