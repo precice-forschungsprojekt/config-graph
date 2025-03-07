@@ -29,9 +29,9 @@ def main():
         sys.exit(f"[{color_red}ERROR{color_reset}]: '{color_cyan}{args.src.name}{color_reset}' is not an xml file")
 
     root = parse_file(file_path)
-    G = g.get_graph(root)
+    graph = g.get_graph(root)
 
-    g.print_graph(G)
+    g.print_graph(graph)
 
 if __name__ == "__main__":
     sys.exit(main())
