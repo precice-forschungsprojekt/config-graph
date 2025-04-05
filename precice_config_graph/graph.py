@@ -6,6 +6,7 @@ You can find documentation under README.md, docs/Nodes.md and docs/Edges.md.
 This graph was developed by Simon Wazynski, Alexander Hutter and Orlando Ackermann as part of https://github.com/precice-forschungsprojekt.
 """
 
+import sys
 import matplotlib.pyplot as plt
 import networkx as nx
 from lxml import etree
@@ -15,6 +16,7 @@ from .edges import Edge
 from .nodes import CouplingSchemeType, ActionType, M2NType, MappingType, MappingConstraint
 from .xml_processing import convert_string_to_bool
 
+LINK_GRAPH_ISSUES: str = "\'\033[1;36mhttps://github.com/precice-forschungsprojekt/config-graph/issues\033[0m\'"
 
 def get_graph(root: etree.Element) -> nx.Graph:
     assert root.tag == "precice-configuration"
@@ -25,6 +27,23 @@ def get_graph(root: etree.Element) -> nx.Graph:
             if child.tag.startswith(prefix):
                 postfix = child.tag[child.tag.find(":") + 1:]
                 yield child, postfix
+
+    def error(message:str):
+        sys.exit("\033[1;31m[ERROR]\033[0m Exiting graph generation."
+                 + "\n" + message
+                 + "\nPlease run \'precice-tools check\' for syntax errors."
+                 + "\n\nIf you are sure this behaviour is incorrect, please leave a report at " + LINK_GRAPH_ISSUES
+                )
+
+    def error_missing_attribute(e:etree.Element, key:str):
+        message:str = 'Missing attribute \"' + key + '\" for element \"' + e.tag + '\".'
+        error(message)
+
+    def get_attribute(e:etree.Element, key:str):
+        attribute = e.get(key)
+        if not attribute:
+            error_missing_attribute(e, key)
+        return attribute
 
     # FIND NODES
 
@@ -47,20 +66,19 @@ def get_graph(root: etree.Element) -> nx.Graph:
     watch_integral_nodes: list[n.WatchIntegralNode] = []
 
     # Data items – <data:… />
-    for (data_el, kind) in find_all_with_prefix(root, "data"):
-        # TODO: Error on unknown kind
-        name = data_el.attrib['name']  # TODO: Error on not found
+    for (data_el, kind) in find_all_with_prefix(root, "data"):  # TODO: Error on unknown kind
+        name = get_attribute(data_el, 'name')
         node = n.DataNode(name, n.DataType(kind))
         data_nodes[name] = node
 
     # Meshes – <mesh />
     for mesh_el in root.findall("mesh"):
-        name = mesh_el.attrib['name']  # TODO: Error on not found
+        name = get_attribute(mesh_el, 'name')
         mesh = n.MeshNode(name)
 
         # Data usages – <use-data />: Will be mapped to edges
         for use_data in mesh_el.findall("use-data"):
-            data_name = use_data.attrib['name']  # TODO: Error on not found
+            data_name = get_attribute(use_data, 'name')
             data_node = data_nodes[data_name]
             mesh.use_data.append(data_node)
 
@@ -69,21 +87,21 @@ def get_graph(root: etree.Element) -> nx.Graph:
 
     # Participants – <participant />
     for participant_el in root.findall("participant"):
-        name = participant_el.attrib['name']  # TODO: Error on not found
+        name = get_attribute(participant_el, 'name')
         participant = n.ParticipantNode(name)
 
         # Provide- and Receive-Mesh
         # <provide-mesh />
         for provide_mesh_el in participant_el.findall("provide-mesh"):
-            mesh_name = provide_mesh_el.attrib['name']  # TODO: Error on not found
+            mesh_name = get_attribute(provide_mesh_el, 'name')
             participant.provide_meshes.append(mesh_nodes[mesh_name])
 
         # Read and write data
         # <write-data />
         for write_data_el in participant_el.findall("write-data"):
-            data_name = write_data_el.attrib['name']  # TODO: Error on not found
+            data_name = get_attribute(write_data_el, 'name')
             data = data_nodes[data_name]
-            mesh_name = write_data_el.attrib['mesh']  # TODO: Error on not found
+            mesh_name = get_attribute(write_data_el, 'mesh')
             mesh = mesh_nodes[mesh_name]
 
             write_data = n.WriteDataNode(participant, data, mesh)
@@ -93,9 +111,9 @@ def get_graph(root: etree.Element) -> nx.Graph:
         # <read-data />
         # TODO: Refactor to reduce code duplication
         for read_data_el in participant_el.findall("read-data"):
-            data_name = read_data_el.attrib['name']  # TODO: Error on not found
+            data_name = get_attribute(read_data_el, 'name')
             data = data_nodes[data_name]
-            mesh_name = read_data_el.attrib['mesh']  # TODO: Error on not found
+            mesh_name = get_attribute(read_data_el, 'mesh')
             mesh = mesh_nodes[mesh_name]
 
             read_data = n.ReadDataNode(participant, data, mesh)
@@ -104,16 +122,16 @@ def get_graph(root: etree.Element) -> nx.Graph:
 
         # Mapping
         for (mapping_el, kind) in find_all_with_prefix(participant_el, "mapping"):
-            direction = mapping_el.attrib['direction']  # TODO: Error on not found
+            direction = get_attribute(mapping_el, 'direction')
             # From mesh might not exist due to just-in-time mapping
-            from_mesh_name = mapping_el.attrib.get('from')  # TODO: Error on not found
+            from_mesh_name =  mapping_el.get('from')
             from_mesh = mesh_nodes[from_mesh_name] if from_mesh_name else None
             # From mesh might not exist due to just-in-time mapping
-            to_mesh_name = mapping_el.attrib.get('to')  # TODO: Error on not found
+            to_mesh_name =  mapping_el.get('to')
             to_mesh = mesh_nodes[to_mesh_name] if to_mesh_name else None
 
             type = MappingType(kind)
-            constraint = MappingConstraint(mapping_el.attrib['constraint'])
+            constraint = MappingConstraint(get_attribute(mapping_el, 'constraint'))
 
             mapping = None
             if from_mesh and to_mesh:
@@ -123,7 +141,7 @@ def get_graph(root: etree.Element) -> nx.Graph:
                 mapping = n.MappingNode(participant, n.Direction(direction), True, type, constraint,
                                         from_mesh, to_mesh)
             else:
-                pass  # TODO: Error on not found (from and to)
+                error_missing_attribute(mapping_el, 'from\" or \"to')
 
             participant.mappings.append(mapping)
             mapping_nodes.append(mapping)
@@ -137,31 +155,31 @@ def get_graph(root: etree.Element) -> nx.Graph:
         # Actions
         # <action:… />
         for (action_el, kind) in find_all_with_prefix(participant_el, "action"):
-            mesh = mesh_nodes[action_el.attrib['mesh']]
-            timing = n.TimingType(action_el.attrib['timing'])
+            mesh = mesh_nodes[get_attribute(action_el, 'mesh')]
+            timing = n.TimingType(get_attribute(action_el, 'timing'))
 
             target_data = None
             if kind in ["multiply-by-area", "divide-by-area", "summation", "python"]:
                 target_data_el = action_el.find("target-data")
                 if target_data_el is not None:
-                    target_data = data_nodes[target_data_el.attrib['name']]
+                    target_data = data_nodes[get_attribute(target_data_el, 'name')]
 
             source_data: list[n.DataNode] = []
             if kind in ["summation", "python"]:
                 source_data_els = action_el.findall("source-data")
                 for source_data_el in source_data_els:
-                    source_data.append(data_nodes[source_data_el.attrib['name']])
+                    source_data.append(data_nodes[get_attribute(source_data_el, 'name')])
 
-            kind = ActionType(kind)
+            type = ActionType(kind)
 
-            action = n.ActionNode(participant, kind, mesh, timing, target_data, source_data)
+            action = n.ActionNode(participant, type, mesh, timing, target_data, source_data)
             action_nodes.append(action)
 
         # Watch-Points
         # <watch-point />
         for watch_point_el in participant_el.findall("watch-point"):
-            point_name = watch_point_el.attrib['name']
-            mesh = mesh_nodes[watch_point_el.attrib['mesh']]
+            point_name = get_attribute(watch_point_el, 'name')
+            mesh = mesh_nodes[get_attribute(watch_point_el, 'mesh')]
 
             watch_point = n.WatchPointNode(point_name, participant, mesh)
             watch_point_nodes.append(watch_point)
@@ -169,8 +187,8 @@ def get_graph(root: etree.Element) -> nx.Graph:
         # Watch-Integral
         # <watch-integral />
         for watch_integral_el in participant_el.findall("watch-integral"):
-            integral_name = watch_integral_el.attrib['name']
-            mesh = mesh_nodes[watch_integral_el.attrib['mesh']]
+            integral_name = get_attribute(watch_integral_el, 'name')
+            mesh = mesh_nodes[get_attribute(watch_integral_el, 'mesh')]
 
             watch_integral = n.WatchIntegralNode(integral_name, participant, mesh)
             watch_integral_nodes.append(watch_integral)
@@ -182,18 +200,18 @@ def get_graph(root: etree.Element) -> nx.Graph:
     # This can't be done in the participants loop, since it references participants which might not yet be created
     # <participant />
     for participant_el in root.findall("participant"):
-        name = participant_el.attrib['name']  # TODO: Error on not found
+        name = get_attribute(participant_el, 'name')
         participant = participant_nodes[name]  # This should not fail, because we created participants before
 
         # <receive-mesh />
         for receive_mesh_el in participant_el.findall("receive-mesh"):
-            mesh_name = receive_mesh_el.attrib['name']  # TODO: Error on not found
+            mesh_name = get_attribute(receive_mesh_el, 'name')
             mesh = mesh_nodes[mesh_name]
 
-            from_participant_name = receive_mesh_el.attrib['from']  # TODO: Error on not found
+            from_participant_name = get_attribute(receive_mesh_el, 'from')
             from_participant = participant_nodes[from_participant_name]
 
-            api_access_str = receive_mesh_el.attrib.get('api-access')
+            api_access_str = receive_mesh_el.get('api-access')
             if api_access_str:
                 api_access = convert_string_to_bool(api_access_str)
             else:
@@ -209,10 +227,16 @@ def get_graph(root: etree.Element) -> nx.Graph:
         match kind:
             case "serial-explicit" | "serial-implicit" | "parallel-explicit" | "parallel-implicit":
                 # <participants />
-                participants = coupling_scheme_el.find("participants")  # TODO: Error on multiple participants tags
-                first_participant_name = participants.attrib['first']  # TODO: Error on not found
+                participants_list = coupling_scheme_el.findall("participants")
+                if len(participants_list) > 1:
+                    message:str = 'Multiple \'participants\' tags in \'' + coupling_scheme_el.tag + '\''
+                    error(message)
+                elif  len(participants_list) < 1:
+                    error_missing_attribute(coupling_scheme_el, 'participants')
+                participants = participants_list[0]
+                first_participant_name = get_attribute(participants, 'first')
                 first_participant = participant_nodes[first_participant_name]
-                second_participant_name = participants.attrib['second']  # TODO: Error on not found
+                second_participant_name = get_attribute(participants, 'second')
                 second_participant = participant_nodes[second_participant_name]
 
                 type = CouplingSchemeType(kind)
@@ -223,12 +247,12 @@ def get_graph(root: etree.Element) -> nx.Graph:
                 participants = []
                 # <participant name="..." />
                 for participant_el in coupling_scheme_el.findall("participant"):
-                    name = participant_el.attrib['name']
+                    name = get_attribute(participant_el, 'name')
                     participant = participant_nodes[name]
                     participants.append(participant)
 
                     control = ('control' in participant_el.attrib and
-                               convert_string_to_bool(participant_el.attrib['control']))
+                               convert_string_to_bool(participant_el.get('control')))
                     if control:
                         assert control_participant is None  # there must not be multiple control participants
                         control_participant = participant
@@ -241,15 +265,13 @@ def get_graph(root: etree.Element) -> nx.Graph:
 
         # Exchanges – <exchange />
         for exchange_el in coupling_scheme_el.findall("exchange"):
-            data_name = exchange_el.attrib['data']  # TODO: Error on not found
+            data_name = get_attribute(exchange_el, 'data')
             data = data_nodes[data_name]
-            mesh_name = exchange_el.attrib['mesh']  # TODO: Error on not found
+            mesh_name = get_attribute(exchange_el, 'mesh')
             mesh = mesh_nodes[mesh_name]
-            from_participant_name = exchange_el.attrib['from']
-            # TODO: Error on not found and different from first or second participant
+            from_participant_name = get_attribute(exchange_el, 'from')
             from_participant = participant_nodes[from_participant_name]
-            to_participant_name = exchange_el.attrib['to']
-            # TODO: Error on not found and different from first or second participant
+            to_participant_name = get_attribute(exchange_el, 'to')
             to_participant = participant_nodes[to_participant_name]
 
             exchange = n.ExchangeNode(coupling_scheme, data, mesh, from_participant, to_participant)
@@ -265,9 +287,9 @@ def get_graph(root: etree.Element) -> nx.Graph:
     # M2N – <m2n:… />
     for (m2n, kind) in find_all_with_prefix(root, "m2n"):
         type = M2NType(kind)
-        acceptor_name = m2n.attrib['acceptor']  # TODO: Error on not found
+        acceptor_name = get_attribute(m2n, 'acceptor')
         acceptor = participant_nodes[acceptor_name]
-        connector_name = m2n.attrib['connector']  # TODO: Error on not found
+        connector_name = get_attribute(m2n, 'connector')
         connector = participant_nodes[connector_name]
         m2n = n.M2NNode(type, acceptor, connector)
         m2n_nodes.append(m2n)
