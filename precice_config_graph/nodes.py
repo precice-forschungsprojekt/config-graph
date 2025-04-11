@@ -75,6 +75,35 @@ class ExportFormat(Enum):
     CSV = "csv"
 
 
+class AccelerationType(Enum):
+    AITKEN = "aitken"
+    IQN_ILS = "IQN-ILS"
+    IQN_IMVJ = "IQN-IMVJ"
+    #CONSTANT = "constant"
+
+
+#class PreconditionerType(Enum):
+#    CONSTANT = "constant"
+#    VALUE = "value"
+#    RESIDUAL = "residual"
+#    RESIDUAL_SUM = "residual-sum"
+
+
+#class FilterType(Enum):
+#    QR1 = "QR1"
+#    QR1_ABSOLUTE = "QR1-absolute"
+#    QR2 = "QR2"
+#    QR3 = "QR3"
+
+
+#class ImvjRestartModeType(Enum):
+#    NO_RESTART = "no-restart"
+#    RS_0 = "RS-0"
+#    RS_LS = "RS-LS"
+#    RS_SVD = "RS-SVD"
+#    RS_SLIDE = "RS-SLIDE"
+
+
 class ParticipantNode:
     def __init__(
             self, name: str,
@@ -273,3 +302,18 @@ class M2NNode:
         self.type = type
         self.acceptor = acceptor
         self.connector = connector
+
+
+class AccelerationDataNode:
+    def __init__(self, acceleration: AccelerationNode, data: DataNode, mesh: MeshNode):
+        self.acceleration = acceleration
+        self.data = data
+        self.mesh = mesh
+
+
+class AccelerationNode:
+    def __init__(self, coupling_scheme: CouplingSchemeNode | MultiCouplingSchemeNode,
+                 type: AccelerationType, data: list[AccelerationDataNode]):
+        self.coupling_scheme = coupling_scheme
+        self.type = type
+        self.data = data
