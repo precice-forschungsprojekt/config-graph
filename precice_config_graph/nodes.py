@@ -82,6 +82,13 @@ class AccelerationType(Enum):
     CONSTANT = "constant"
 
 
+class ConvergenceMeasureType(Enum):
+    ABSOLUTE = "absolute-convergence-measure"
+    ABSOLUTE_OR_RELATIVE = "absolute-or-relative-convergence-measure"
+    RELATIVE = "relative-convergence-measure"
+    RESIDUAL_RELATIVE = "residual-relative-convergence-measure"
+
+
 class ParticipantNode:
     def __init__(
             self, name: str,
@@ -165,7 +172,8 @@ class ReceiveMeshNode:
 class CouplingSchemeNode:
     def __init__(self, type: CouplingSchemeType, first_participant: ParticipantNode,
                  second_participant: ParticipantNode, exchanges: list[ExchangeNode] = None,
-                 accelerations: list[AccelerationNode] = None):
+                 accelerations: list[AccelerationNode] = None,
+                 convergence_measures: list[ConvergenceMeasureNode] = None):
         self.type = type
         self.first_participant = first_participant
         self.second_participant = second_participant
@@ -180,10 +188,16 @@ class CouplingSchemeNode:
         else:
             self.accelerations = accelerations
 
+        if convergence_measures is None:
+            self.convergence_measures = []
+        else:
+            self.convergence_measures = convergence_measures
+
 
 class MultiCouplingSchemeNode:
     def __init__(self, control_participant: ParticipantNode, participants: list[ParticipantNode] = None,
-                 exchanges: list[ExchangeNode] = None, accelerations: list[AccelerationNode] = None):
+                 exchanges: list[ExchangeNode] = None, accelerations: list[AccelerationNode] = None,
+                 convergence_measures: list[ConvergenceMeasureNode] = None):
         self.control_participant = control_participant
 
         if participants is None:
@@ -200,6 +214,11 @@ class MultiCouplingSchemeNode:
             self.accelerations = []
         else:
             self.accelerations = accelerations
+
+        if convergence_measures is None:
+            self.convergence_measures = []
+        else:
+            self.convergence_measures = convergence_measures
 
 
 class DataNode:
@@ -240,12 +259,18 @@ class ExchangeNode:
                  data: DataNode,
                  mesh: MeshNode,
                  from_participant: ParticipantNode,
-                 to_participant: ParticipantNode):
+                 to_participant: ParticipantNode,
+                 convergence_measures: list[ConvergenceMeasureNode] = None):
         self.coupling_scheme = coupling_scheme
         self.data = data
         self.mesh = mesh
         self.from_participant = from_participant
         self.to_participant = to_participant
+
+        if convergence_measures is None:
+            self.convergence_measures = []
+        else:
+            self.convergence_measures = convergence_measures
 
 
 class ExportNode:
@@ -309,3 +334,15 @@ class AccelerationNode:
             self.data = []
         else:
             self.data = data
+
+
+class ConvergenceMeasureNode:
+    def __init__(self, type: ConvergenceMeasureType,
+                 coupling_scheme: CouplingSchemeNode | MultiCouplingSchemeNode,
+                 exchange: ExchangeNode,
+                 data: DataNode, mesh: MeshNode):
+        self.type = type
+        self.coupling_scheme = coupling_scheme
+        self.exchange = exchange
+        self.data = data
+        self.mesh = mesh
